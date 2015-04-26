@@ -4,12 +4,18 @@
 #include "main.h"
 #include <cstdio>
 
+
+
 int main() {
 
-	const int len = 4;
-	//data_t input[] = {4,12,-16,12,47,-43,-16, -43, 98};
-	//data_t input[] = {25, 15, -5, 0, 18,  0, 0,  0, 11};
-	data_t input[] = {18, 22,  54,  42, 22, 70,  86,  62, 54, 86, 174, 134, 42, 62, 134, 106};
+	const char filename[] = "matrix.txt";
+
+	data_t * input;
+	int len;
+
+	read_matrix_from_file(&input, filename, & len);
+	print_matrix(input, len);
+
 	data_t input2[len * len];
 	copy_matrix(input, input2, len);
 	print_matrix(input, len);
@@ -37,9 +43,39 @@ int main() {
 
 	CUDA_SAFE_CALL(cudaFree(d_matrix));
 	free(h_result);
+	free(input);
 }
 
 
+void read_matrix_from_file(data_t ** matrix, const char filename[], int * len) {
+
+	FILE * file = fopen(filename, "r");
+	const int BUFFER_SIZE = 1e5;
+	char buffer[BUFFER_SIZE];
+	FILE * line = fmemopen(buffer, BUFFER_SIZE, "r");
+
+	// GETING LENGTH
+	*len = 0;
+	if(fgets(buffer, BUFFER_SIZE, file) != NULL){
+		data_t dummy;
+		while(fscanf(line, "%f", &dummy)) {
+			(*len)++;
+		}
+	}
+	fclose(line);
+	fclose(file);
+
+	*matrix = (data_t *) malloc(sizeof(data_t) * (*len) * (*len));
+	//IMPORTING matrix
+	file = fopen(filename, "r");
+	int i = 0;
+	int code = fscanf(file, "%f", (*matrix + i));
+	while(code && code != EOF){
+		i++;
+		code = fscanf(file, "%f", (*matrix + i));
+	}
+	fclose(file);
+}
 
 int init_matrix_zero(data_t * matrix, long int len)
 {
