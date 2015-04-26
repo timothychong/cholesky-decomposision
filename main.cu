@@ -6,16 +6,16 @@
 
 int main() {
 
-	const int len = 3;
+	const int len = 4;
 	//data_t input[] = {4,12,-16,12,47,-43,-16, -43, 98};
-	data_t input[] = {25, 15, -5, 0, 18,  0, 0,  0, 11};
+	//data_t input[] = {25, 15, -5, 0, 18,  0, 0,  0, 11};
+	data_t input[] = {18, 22,  54,  42, 22, 70,  86,  62, 54, 86, 174, 134, 42, 62, 134, 106};
 	data_t input2[len * len];
 	copy_matrix(input, input2, len);
-	//data_t input[] = {18, 22,  54,  42, 22, 70,  86,  62, 54, 86, 174, 134, 42, 62, 134, 106};
 	print_matrix(input, len);
-	//chsky_dec_baseline(input, len);
+	chsky_dec_baseline(input, len);
 	printf("\n");
-	//print_matrix(input, len);
+	print_matrix(input, len);
 
 	//Allocating memory on 
 	size_t allocSize = len * len * sizeof(data_t);
