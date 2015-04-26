@@ -1,24 +1,18 @@
 #include "chsky_dec.h"
 #include "math.h"
 
-void chsky_dec_baseline(data_t * input, data_t * output, const int len){
-	for(int i = 0; i < len; i++) {
-		for(int j = 0; j < i; j++) {
-				data_t result = input[i * len + j];
-				for(int k = 0; k < j; k++){
-						data_t temp_1 = output[i * len + k];
-						data_t temp_2 = output[j * len + k];
-						result = result - temp_1 * temp_2;
-				}
-				result = result / output[j * len + j];
-				output[i * len + j] = result;
+#define matrix(x,y) matrix[x * len + y]
+
+void chsky_dec_baseline(data_t * matrix, const int len){
+	for(int k=0; k < len; k++) {
+		matrix(k,k) = sqrt(matrix(k, k));
+		for(int j = k + 1; j < len; j++) {
+			matrix(k,j) = matrix(k,j) / matrix[k * len + k];
 		}
-		data_t result_diag = input[i * len + i];
-		for(int k = 0; k < i; k++){
-			 data_t temp = output[i * len + k];
-			 result_diag = result_diag - temp * temp;
+		for(int i = k + 1; i < len; i++) {
+			for(int j = i; j <len; j++) {
+				matrix(i, j) = matrix(i,j) - matrix(k,i)  * matrix(k,j);
+			}
 		}
-		result_diag = sqrt(result_diag);
-		output[i * len + i] = result_diag;
 	}
 }

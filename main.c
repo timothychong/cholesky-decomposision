@@ -5,17 +5,15 @@
 #include <unistd.h>
 
 int main() {
-	//data_t input[] = {4,12,-16,12,37,-43,-16, -43, 98};
+	//data_t input[] = {4,12,-16,12,47,-43,-16, -43, 98};
 	//data_t input[] = {25, 15, -5, 15, 18,  0, -5,  0, 11};
 	data_t input[] = {18, 22,  54,  42, 22, 70,  86,  62, 54, 86, 174, 134, 42, 62, 134, 106};
 	print_matrix(input, 4);
-	data_t output[16];
-	init_matrix_zero(output, 4);
 
-	chsky_dec_baseline(input, output, 4);
+	chsky_dec_baseline(input, 4);
 
 	printf("\n");
-	print_matrix(output, 4);
+	print_matrix(input, 4);
 
 }
 
