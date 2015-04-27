@@ -7,10 +7,11 @@
 #define TOL 1e-4
 
 int main() {
-	const char filename[] = "matrix/2000.txt";
+	const char filename[] = "matrix/500.txt";
 
 	//READING FROM FILE
 	data_t * input;
+	data_t * input_for_pthread;
 	int len;
 	read_matrix_from_file(&input, filename, & len);
 	//END READING FROM FILE
@@ -24,6 +25,10 @@ int main() {
 
 	// Allocate arrays on host memory
 	data_t *h_result = (float *) malloc(allocSize);
+
+	// Copying input matrix for pthread version
+	input_for_pthread = (data_t*) malloc(allocSize);
+	copy_matrix(input, input_for_pthread, len);
 
 	// GPU Timing variables
 	cudaEvent_t start, stop;
@@ -57,6 +62,14 @@ int main() {
 	cudaEventElapsedTime(&elapsed_gpu, start, stop);
 	printf("\nCPU time: %f (msec)\n", elapsed_gpu);
 
+	cudaEventRecord(start, 0);
+	
+	chsky_dec_strip(input_for_pthread, len);
+
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&elapsed_gpu, start, stop);
+	printf("\npthread time (%d threads): %f (msec)\n", NUM_THREADS, elapsed_gpu);
 
 	int errCount = 0, zeroCount = 0;
 	float max_diff = 0;
@@ -72,16 +85,40 @@ int main() {
 			zeroCount++;
 		}
 	}
-	printf("Maximum difference: %f", max_diff);
+	printf("\nMaximum difference: %f", max_diff);
 	
 	if (errCount > 0) {
-		printf("\n@ERROR: TEST FAILED: %d results did not matched\n", errCount);
+		printf("\n@ERROR: GPU TEST FAILED: %d results did not matched\n", errCount);
 	}
 	else if (zeroCount > 0){
-		printf("\n@ERROR: TEST FAILED: %d results (from GPU) are zero\n", zeroCount);
+		printf("\n@ERROR: GPU TEST FAILED: %d results (from GPU) are zero\n", zeroCount);
 	}
 	else {
-		printf("\nTEST PASSED: All results matched\n");
+		printf("\nGPU TEST PASSED: All results matched\n");
+	}
+
+
+	for(int i = 0; i < len * len; i++) {
+		double diff = abs(input_for_pthread[i] - input[i]);
+		if (diff > TOL) {
+			if(diff > max_diff)
+					max_diff = diff;
+			errCount++;
+		}
+		if (input_for_pthread[i] == 0) {
+			zeroCount++;
+		}
+	}
+	printf("\nMaximum difference: %f", max_diff);
+	
+	if (errCount > 0) {
+		printf("\n@ERROR: PTHREAD TEST FAILED: %d results did not matched\n", errCount);
+	}
+	else if (zeroCount > 0){
+		printf("\n@ERROR: PTHREAD TEST FAILED: %d results (from GPU) are zero\n", zeroCount);
+	}
+	else {
+		printf("\nPTHREAD TEST PASSED: All results matched\n");
 	}
 
 	CUDA_SAFE_CALL(cudaFree(d_matrix));
