@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#define LOOP_UNROLL 4
 #define matrix(x,y) matrix[x * len + y]
 
 void chsky_dec_baseline(data_t * matrix, const int len){
@@ -49,13 +50,15 @@ void *worker_thread(void *thread_argument){
 	int i, j, k;
 	int rc;
 	int state = 0;
+	float diagonal_element_reciprocal;
+	float holder;
 
 	// Go diagonally across the matrix
 	for (k = 0; k < len; k++){
+			
 
 		// one thread is responsible for updating the elements along the diagonal
-		if (my_ID == 0){
-			matrix(k, k) = sqrt(matrix(k, k));
+		if (my_ID == 0){ matrix(k, k) = sqrt(matrix(k, k));
 			//printf("updating %d\n", count++);
 		}
 
@@ -65,6 +68,9 @@ void *worker_thread(void *thread_argument){
     			printf("Could not wait on barrier\n");
     			exit(-1);
   		}
+		
+		// set diagonal_element_reciprocal once within this iteration
+		diagonal_element_reciprocal = 1/matrix(k, k);
 
   		// Normalize the row to the left of the current diagonal element. 
   		state = 0;
@@ -72,7 +78,7 @@ void *worker_thread(void *thread_argument){
   			// Once I have found a column to normalize, jump to next column in steps of NUM_THREADS 
   			if (i % NUM_THREADS == my_ID){
   				state = 1;
-  				matrix(k, i) = matrix(k, i) / matrix(k, k);
+  				matrix(k, i) = matrix(k, i) * diagonal_element_reciprocal;
   			}
   			if(state == 1){
   				i += (NUM_THREADS-1);
@@ -86,14 +92,31 @@ void *worker_thread(void *thread_argument){
     			exit(-1);
   		}
 
-  		// Submatrix update: once I have found a column I am responsible for, jump to next column in steps of NUM_THREADS
+  		// Submatrix update: once I have found a row I am responsible for, jump to next row in steps of NUM_THREADS
   		state = 0;
   		for (i = k+1; i < len; i++){
   			if (i % NUM_THREADS == my_ID){
   				state = 1;
-  				// update all the elements below the normalized row in the column I'm responsible for
-  				for (j = i; j < len; j++){
-  					matrix(i, j) = matrix(i, j) - matrix(k, i) * matrix(k, j);
+  				// update all the elements to the right in the row I'm responsible for.
+				// variable to store the element in the normalized row
+				holder = matrix(k, i);	// memory access only once
+				j = i;
+
+				// iterate by steps of one until we can start unrolling
+				while ( (len-j)%LOOP_UNROLL != 0){
+					matrix(i, j) = matrix(i, j) - holder * matrix(k, j);
+					j++;
+				}
+				// unroll the loop
+  				for (; j < len; j+=LOOP_UNROLL){
+  					matrix(i, j) = matrix(i, j) - (holder * matrix(k, j));
+					matrix(i, j+1) = matrix(i, j+1) - (holder * matrix(k, j+1));
+					matrix(i, j+2) = matrix(i, j+2) - (holder * matrix(k, j+2));
+					matrix(i, j+3) = matrix(i, j+3) - (holder * matrix(k, j+3));
+					//matrix(i, j+4) = matrix(i, j+4) - (holder * matrix(k, j+4));
+					//matrix(i, j+5) = matrix(i, j+5) - (holder * matrix(k, j+5));
+					//matrix(i, j+6) = matrix(i, j+6) - (holder * matrix(k, j+6));
+					//matrix(i, j+7) = matrix(i, j+7) - (holder * matrix(k, j+7));
   				}
   			}
   			if (state == 1){
@@ -104,8 +127,8 @@ void *worker_thread(void *thread_argument){
   		// Make sure the submatrix has been completely updated before moving on to the next iteration of k
   		rc = pthread_barrier_wait(&barrier);
   		if (rc != 0 && rc != PTHREAD_BARRIER_SERIAL_THREAD) {
-    			printf("Could not wait on barrier\n");
-    			exit(-1);
+    		printf("Could not wait on barrier\n");
+    		exit(-1);
   		}
 	}
 
@@ -148,18 +171,11 @@ void chsky_dec_strip(data_t * matrix, const int len){
 
 	// Join threads to assure all threads complete
   	for (t = 0; t < NUM_THREADS; t++) {
-    	if (pthread_join(threads[t],NULL)){
+    		if (pthread_join(threads[t],NULL)){
       			printf("\n ERROR on join\n");
       			return;
     		}
   	}
-
-}
-
-
-void chsky_dec_block(data_t * matrix, const int len){
-
-	//TODO JOHN
 
 }
 
