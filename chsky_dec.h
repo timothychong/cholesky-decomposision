@@ -5,9 +5,9 @@
 
 void chsky_dec_baseline(data_t * matrix, const int len);
 
-void chsky_dec_strip(data_t * matrix, const int len);
+void chsky_dec_strip_optimized(data_t * matrix, const int len);
 
-void chsky_dec_strip_unoptomized(data_t * matrix, const int len);
+void chsky_dec_strip(data_t * matrix, const int len);
 
 void chsky_dec_block(data_t * matrix, const int len);
 
