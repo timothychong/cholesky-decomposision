@@ -37,7 +37,7 @@ pthread_barrier_t barrier;
  * thread worker function for Cholesky decomposition
  * @param thread_argument the struct that each thread receives as input
  */
-void *worker_thread(void *thread_argument){
+void *worker_thread_optimized(void *thread_argument){
 
 	// cast argument to struct pointer
 	struct argument *my_argument = (struct argument*) thread_argument;
@@ -142,7 +142,7 @@ void *worker_thread(void *thread_argument){
  *	@param matrix the matrix to decompose
  *	@param len the length of the matrix
  */
-void chsky_dec_strip(data_t * matrix, const int len){
+void chsky_dec_strip_optimized(data_t * matrix, const int len){
 
 	// Array of threads and arguments for each
 	pthread_t threads[NUM_THREADS];
@@ -162,7 +162,7 @@ void chsky_dec_strip(data_t * matrix, const int len){
 		my_thread_arguments[t].len = len;
 		my_thread_arguments[t].thread_ID = t;
 
-		rc = pthread_create(&threads[t], NULL, worker_thread, (void*) &my_thread_arguments[t]);
+		rc = pthread_create(&threads[t], NULL, worker_thread_optimized, (void*) &my_thread_arguments[t]);
 		if (rc) {
       			printf("ERROR; return code from pthread_create() is %d\n", rc);
       			return;
@@ -186,7 +186,7 @@ void chsky_dec_strip(data_t * matrix, const int len){
  * thread worker function for Cholesky decomposition (unoptomized)
  * @param thread_argument the struct that each thread receives as input
  */
-void *worker_thread_unoptomized(void *thread_argument){
+void *worker_thread(void *thread_argument){
 
 	// cast argument to struct pointer
 	struct argument *my_argument = (struct argument*) thread_argument;
@@ -269,7 +269,7 @@ void *worker_thread_unoptomized(void *thread_argument){
  *	@param matrix the matrix to decompose
  *	@param len the length of the matrix
  */
-void chsky_dec_strip_unoptomized(data_t * matrix, const int len){
+void chsky_dec_strip(data_t * matrix, const int len){
 
 	// Array of threads and arguments for each
 	pthread_t threads[NUM_THREADS];
@@ -289,7 +289,7 @@ void chsky_dec_strip_unoptomized(data_t * matrix, const int len){
 		my_thread_arguments[t].len = len;
 		my_thread_arguments[t].thread_ID = t;
 
-		rc = pthread_create(&threads[t], NULL, worker_thread_unoptomized, (void*) &my_thread_arguments[t]);
+		rc = pthread_create(&threads[t], NULL, worker_thread, (void*) &my_thread_arguments[t]);
 		if (rc) {
       			printf("ERROR; return code from pthread_create() is %d\n", rc);
       			return;
