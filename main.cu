@@ -8,10 +8,11 @@
 
 #define CUDA_SAFE_CALL(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 int main() {
-	const char filename[] = "matrix/250.txt";
+	const char filename[] = "matrix/2000.txt";
 
 	//READING FROM FILE
 	data_t * input;
+	data_t * input_for_shared_gpu;
 	data_t * input_for_pthread;
 	int len;
 	read_matrix_from_file(&input, filename, & len);
@@ -26,14 +27,24 @@ int main() {
 
 	// Allocate arrays on host memory
 	data_t *h_result = (float *) malloc(allocSize);
+	data_t *h_result_shared = (float *) malloc(allocSize);
 
 	// Copying input matrix for pthread version
 	input_for_pthread = (data_t*) malloc(allocSize);
 	copy_matrix(input, input_for_pthread, len);
 
+	//Copy input matrix for GPU_shared version
+	input_for_shared_gpu = (data_t*) malloc(allocSize);
+	copy_matrix(input, input_for_shared_gpu, len);
+
 	// GPU Timing variables
 	cudaEvent_t start, stop;
 	float elapsed_gpu;
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	// GPU
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
 
 	// Create the cuda events
 	cudaEventCreate(&start);
@@ -45,7 +56,7 @@ int main() {
 
 	chsky_dec_gpu(d_matrix, len);
 
-	CUDA_SAFE_CALL(cudaMemcpy(h_result, d_matrix, allocSize, cudaMemcpyDeviceToHost));
+	CUDA_SAFE_CALL(cudaMemcpy(h_result_shared, d_matrix, allocSize, cudaMemcpyDeviceToHost));
 
 	// Stop and destroy the timer
 	cudaEventRecord(stop,0);
@@ -53,6 +64,29 @@ int main() {
 	cudaEventElapsedTime(&elapsed_gpu, start, stop);
 
 	printf("\nGPU time: %f (msec)\n", elapsed_gpu);
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	// Shared GPU
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	cudaEventRecord(start, 0);
+	CUDA_SAFE_CALL(cudaMemcpy(d_matrix, input_for_shared_gpu, allocSize, cudaMemcpyHostToDevice));
+	chsky_dec_gpu_shared(d_matrix, len);
+	CUDA_SAFE_CALL(cudaMemcpy(h_result, d_matrix, allocSize, cudaMemcpyDeviceToHost));
+
+	// Stop and destroy the timer
+	cudaEventRecord(stop,0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&elapsed_gpu, start, stop);
+
+	printf("\nGPU_shared time: %f (msec)\n", elapsed_gpu);
+
+
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	// PTHREAD
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
 
 	cudaEventRecord(start, 0);
 
@@ -76,7 +110,7 @@ int main() {
 	float max_diff = 0;
 
 	for(int i = 0; i < len * len; i++) {
-		double diff = abs(h_result[i] - input[i]);
+		double diff = abs(h_result_shared[i] - input[i]);
 		if (diff > TOL) {
 			if(diff > max_diff)
 					max_diff = diff;
@@ -89,14 +123,40 @@ int main() {
 	printf("\nMaximum difference: %f", max_diff);
 	
 	if (errCount > 0) {
+		printf("\n@ERROR: GPU_shared TEST FAILED: %d results did not matched\n", errCount);
+	}
+	else if (zeroCount > 0){
+		printf("\n@ERROR: GPU_shared TEST FAILED: %d results (from GPU) are zero\n", zeroCount);
+	}
+	else {
+		printf("\nGPU_shared TEST PASSED: All results matched\n");
+	}
+
+	errCount = 0;
+	zeroCount = 0;
+	for(int i = 0; i < len * len; i++) {
+		double diff = abs(h_result[i] - input[i]);
+		if (diff > TOL) {
+			if(diff > max_diff)
+					max_diff = diff;
+			errCount++;
+		}
+		if (input_for_pthread[i] == 0) {
+			zeroCount++;
+		}
+	}
+	printf("\nMaximum difference: %f", max_diff);
+	
+	if (errCount > 0) {
 		printf("\n@ERROR: GPU TEST FAILED: %d results did not matched\n", errCount);
 	}
 	else if (zeroCount > 0){
 		printf("\n@ERROR: GPU TEST FAILED: %d results (from GPU) are zero\n", zeroCount);
 	}
 	else {
-		printf("\nGPU TEST PASSED: All results matched\n");
+		printf("\nPTHREAD GPU PASSED: All results matched\n");
 	}
+
 
 	errCount = 0;
 	zeroCount = 0;
