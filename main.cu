@@ -98,7 +98,8 @@ int main() {
 		printf("\nGPU TEST PASSED: All results matched\n");
 	}
 
-
+	errCount = 0;
+	zeroCount = 0;
 	for(int i = 0; i < len * len; i++) {
 		double diff = abs(input_for_pthread[i] - input[i]);
 		if (diff > TOL) {
