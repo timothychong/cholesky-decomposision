@@ -47,3 +47,6 @@ void chsky_dec_gpu(data_t * matrix, const int len){
 		kernel_chsky_outerprod<<<innerGrid, dimBlock>>>(matrix, k, len);
 	}
 }
+
+
+

@@ -6,6 +6,7 @@
 
 #define TOL 1e-4
 
+#define CUDA_SAFE_CALL(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 int main() {
 	const char filename[] = "matrix/500.txt";
 
