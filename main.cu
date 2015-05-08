@@ -8,7 +8,7 @@
 
 #define CUDA_SAFE_CALL(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 int main() {
-	const char filename[] = "matrix/500.txt";
+	const char filename[] = "matrix/250.txt";
 
 	//READING FROM FILE
 	data_t * input;
